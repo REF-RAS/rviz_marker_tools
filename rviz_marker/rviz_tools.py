@@ -43,6 +43,12 @@ class RGBAColors(int, Enum):
         obj._value_ = value
         obj.rgba = rgba
         return obj
+    @staticmethod
+    def validate_rgba(rgba):
+        rgba = RGBAColors.RED.rgba if rgba is None else rgba
+        if type(rgba) in (list, tuple) and len(rgba) == 3:
+            rgba.append(1)
+        return rgba
     
 def _create_marker(name:str, id:int, reference_frame:str=None, lifetime=rospy.Duration(0.0)) -> Marker:
     """ Create a Marker object
@@ -60,6 +66,9 @@ def _create_marker(name:str, id:int, reference_frame:str=None, lifetime=rospy.Du
     if name is not None:
         the_marker.ns = f'{name}'
         the_marker.id = id
+    lifetime = rospy.Duration(0.0) if lifetime is None else lifetime
+    if type(lifetime) in (float, int):
+        lifetime = rospy.Duration(lifetime) 
     the_marker.lifetime = lifetime
     return the_marker    
     
@@ -123,7 +132,7 @@ def create_axisplane_marker(name:str, id:int, bbox2d:list, offset:float, referen
     else:
         logger.warning(f'create_2dregion_marker: invalid plane parameter {axes}')
         return None
-    rgba = RGBAColors.RED.rgba if rgba is None else rgba
+    rgba = RGBAColors.validate_rgba(rgba)
     the_marker.color = ColorRGBA(*rgba)
     return the_marker
 
@@ -144,7 +153,7 @@ def create_cube_marker_from_bbox(name:str, id:int, bbox3d:list, reference_frame:
     xyz = [(bbox3d[0] + bbox3d[3]) / 2, (bbox3d[1] + bbox3d[4]) / 2, (bbox3d[2] + bbox3d[5]) / 2]
     the_marker.pose = list_to_pose(xyz + rpy)
     the_marker.scale = Vector3(bbox3d[3] - bbox3d[0], bbox3d[4] - bbox3d[1], bbox3d[5] - bbox3d[2])
-    rgba = RGBAColors.RED.rgba if rgba is None else rgba
+    rgba = RGBAColors.validate_rgba(rgba)
     the_marker.color = ColorRGBA(*rgba)
     return the_marker
 
@@ -165,7 +174,7 @@ def create_cube_marker_from_xyzrpy(name:str, id:int, xyzrpy:list, reference_fram
     if isinstance(dimensions, numbers.Number):
         dimensions = [dimensions, dimensions, dimensions]
     the_marker.scale = Vector3(*dimensions)
-    rgba = RGBAColors.RED.rgba if rgba is None else rgba
+    rgba = RGBAColors.validate_rgba(rgba)
     the_marker.color = ColorRGBA(*rgba)
     return the_marker
 
@@ -187,7 +196,7 @@ def create_arrow_marker(name:str, id:int, xyzrpy:list, reference_frame:str, dime
     if isinstance(dimensions, numbers.Number):
         dimensions = [dimensions, dimensions/10, dimensions/10]
     the_marker.scale = Vector3(*dimensions)
-    rgba = RGBAColors.RED.rgba if rgba is None else rgba
+    rgba = RGBAColors.validate_rgba(rgba)
     the_marker.color = ColorRGBA(*rgba)
     return the_marker
 
@@ -209,7 +218,7 @@ def create_line_marker(name:str, id:int, xyz1:list, xyz2:list, reference_frame:s
     the_marker.pose = list_to_pose([0, 0, 0, 0, 0, 0])
     the_marker.points[:] = [Point(*xyz1), Point(*xyz2)]
     the_marker.scale.x = line_width
-    rgba = RGBAColors.RED.rgba if rgba is None else rgba
+    rgba = RGBAColors.validate_rgba(rgba)
     the_marker.color = ColorRGBA(*rgba)
     return the_marker    
 
@@ -270,7 +279,7 @@ def create_sphere_marker(name:str, id:int, xyz:list, reference_frame:str, dimens
     if isinstance(dimensions, numbers.Number):
         dimensions = [dimensions, dimensions, dimensions]
     the_marker.scale = Vector3(*dimensions)
-    rgba = RGBAColors.RED.rgba if rgba is None else rgba
+    rgba = RGBAColors.validate_rgba(rgba)
     the_marker.color = ColorRGBA(*rgba)      
     return the_marker
 
@@ -293,7 +302,7 @@ def create_cylinder_marker(name:str, id:int, xyzrpy:list, reference_frame:str, d
         logger.warning(f'create_cylinder_marker: dimensions should be a list of 3 numbers (radius, radius, height)')
         return None
     the_marker.scale = Vector3(*dimensions)
-    rgba = RGBAColors.RED.rgba if rgba is None else rgba
+    rgba = RGBAColors.validate_rgba(rgba)
     the_marker.color = ColorRGBA(*rgba)      
     return the_marker 
 
@@ -316,17 +325,17 @@ def create_text_marker(name:str, id:int, text:str, xyzrpy:list, reference_frame:
     if isinstance(dimensions, numbers.Number):
         dimensions = [dimensions, dimensions, dimensions]
     the_marker.scale = Vector3(*dimensions)
-    rgba = RGBAColors.RED.rgba if rgba is None else rgba
+    rgba = RGBAColors.validate_rgba(rgba)
     the_marker.color = ColorRGBA(*rgba)
     the_marker.text = text
     return the_marker
 
-def create_mesh_marker(name:str, id:int, filename:str, xyzrpy:list, reference_frame:str, dimensions:list=0.5, rgba:list=None, lifetime=rospy.Duration(0.0)) -> Marker:
+def create_mesh_marker(name:str, id:int, file_uri:str, xyzrpy:list, reference_frame:str, dimensions:list=0.5, rgba:list=None, lifetime=rospy.Duration(0.0)) -> Marker:
     """ Creates a marker for displaying a mesh object
 
     :param name: the name space of the marker
     :param id: the id of the marker
-    :param filename: the full path to the file containing a binary STL or DAE file or using protocols such as file:// or package://
+    :param file_uri: the full path to the file containing a binary STL or DAE file or using protocols such as file://, package://, or http://
     :param xyzrpy: the pose of the text as a list of 6
     :param reference_frame: the reference frame, defaults to None
     :param dimensions: the scale factor of the mesh object, defaults to [1, 1, 1]
@@ -341,14 +350,14 @@ def create_mesh_marker(name:str, id:int, filename:str, xyzrpy:list, reference_fr
         logger.warning(f'create_mesh_marker: dimensions should be a list of 3 numbers (radius, radius, height)')
         return None
     the_marker.scale = Vector3(*dimensions)
-    rgba = RGBAColors.RED.rgba if rgba is None else rgba
+    rgba = RGBAColors.validate_rgba(rgba)
     the_marker.color = ColorRGBA(*rgba)
     try:
-        filename = PackageFile.resolve_to_file_or_http_uri(filename)
+        file_uri = PackageFile.resolve_to_file_or_http_uri(file_uri)
     except Exception as ex:
-        logger.warning(f'create_mesh_marker: Invalid model_file for object ({filename}): {ex}')
+        logger.warning(f'create_mesh_marker: Invalid model_file for object ({file_uri}): {ex}')
         return
-    the_marker.mesh_resource = filename
+    the_marker.mesh_resource = file_uri
     the_marker.mesh_use_embedded_materials = True
     return the_marker
 
@@ -434,8 +443,9 @@ class RvizVisualizer():
         :param topic_cloud: the topic used to publish point cloud, defaults to visualization_cloud     
         """
         self.lock = threading.RLock()
-        # the constant defining the timer period, the actual rate of publishing depends on the individual markers
-        TIMER_PERIOD = 0.1
+        # constant
+        # the time delay publishing the temp marker necessary for RViz to subscribe and read
+        self.TEMP_MAKRER_PUB_DELAY = config_dict.get('pub_temp_marker_delay', 0.2)
         # set default values for keyword argument
         self.default_pub_period_marker = config_dict.get('pub_period_marker', 1.0)
         topic_marker = config_dict.get('topic_marker', '/visualization_marker')
@@ -454,10 +464,10 @@ class RvizVisualizer():
         self.tfs_dict = defaultdict(lambda: None)  # frame_name -> dict
         # setup marker publisher
         self.marker_pub = rospy.Publisher(topic_marker, Marker, queue_size = 100)
-        self.cloud_pub = rospy.Publisher(topic_cloud, PointCloud2, queue_size = 2)
+        self.cloud_pub = rospy.Publisher(topic_cloud, PointCloud2, queue_size = 20)
         # setup timer
-        self.timer_marker_viz = rospy.Timer(rospy.Duration(TIMER_PERIOD), self._cb_timer_marker_viz)
-        self.timer_cloud_viz = rospy.Timer(rospy.Duration(TIMER_PERIOD), self._cb_timer_cloud_viz)
+        self.timer_marker_viz = rospy.Timer(rospy.Duration(self.default_pub_period_marker), self._cb_timer_marker_viz)
+        self.timer_cloud_viz = rospy.Timer(rospy.Duration(self.default_pub_period_cloud), self._cb_timer_cloud_viz)
         self.timer_tf = rospy.Timer(rospy.Duration(self.default_pub_period_tf), self._cb_timer_tf)
 
     def _cb_timer_marker_viz(self, event):
@@ -465,18 +475,20 @@ class RvizVisualizer():
         :meta private:
         """
         with self.lock: 
-            # publish the persistent markers of which the pub_period has lapsed    
+            # publish the persistent markers of which the pub_period has lapsed   
+            current_time = time.time() 
             for key in self.markers_dict.keys():
                 marker_dict = self.markers_dict.get(key)
                 marker = marker_dict['marker'] 
-                current_time = time.time()
                 if marker_dict['next_time'] is None or current_time >= marker_dict['next_time']:
                     self.marker_pub.publish(marker)
                     marker_dict['next_time'] = current_time + marker_dict['pub_period']
             # publish the temporary markers
-            for marker in self.temp_marker_list:
-                self.marker_pub.publish(marker) 
-            self.temp_marker_list.clear() 
+            for marker_dict in list(self.temp_marker_list):
+                marker = marker_dict['marker']
+                if current_time > marker_dict['pub_time']:
+                    self.marker_pub.publish(marker)
+                    self.temp_marker_list.remove(marker_dict)
 
     def _cb_timer_cloud_viz(self, event):
         """ internal callback function 
@@ -527,7 +539,7 @@ class RvizVisualizer():
         """
         assert marker is not None, 'RvizVisualizer (pub_temporary_marker): Parameter (marker) cannot be None'
         with self.lock:
-            self.temp_marker_list.append(marker)      
+            self.temp_marker_list.append({'marker': marker, 'pub_time': time.time() + self.TEMP_MAKRER_PUB_DELAY})      
             return marker     
         
     def add_custom_tf(self, name:str, parent_frame:str, pose:Pose) -> None:
@@ -557,7 +569,7 @@ class RvizVisualizer():
                     if tf_frame in self.tfs_dict:
                         del self.tfs_dict[tf_frame]
             self.markers_dict.clear()
-            self.temp_marker_list.append(create_delete_all_marker(frame))
+            self.temp_marker_list.append({'marker': create_delete_all_marker(frame), 'pub_time': time.time() + self.TEMP_MAKRER_PUB_DELAY})
             
     def delete_persistent_marker(self, name, id, frame) -> None:
         """ Remove a persistent marker from RViz and this object
@@ -572,7 +584,7 @@ class RvizVisualizer():
             if (name, id) in self.markers_dict:
 
                 del self.markers_dict[name, id]
-                self.temp_marker_list.append(create_delete_marker(name, id, frame)) 
+                self.temp_marker_list.append({'marker': create_delete_marker(name, id, frame), 'pub_time': time.time() + self.TEMP_MAKRER_PUB_DELAY}) 
                 tf_frame = f'{name}.{id}'
                 if tf_frame in self.tfs_dict:
                     del self.tfs_dict[tf_frame]
@@ -610,8 +622,6 @@ class PoseAnimator():
     def __init__(self, pose):
         self.pose:Pose = pose
 
-
-
 # -- the test program
 if __name__ == '__main__':
     rospy.loginfo(f'running test_rv_node')
@@ -623,8 +633,8 @@ if __name__ == '__main__':
     the_pose.orientation = Quaternion(0, 0, 0, 1)
     # rv.add_custom_tf('world', 'map', the_pose)
     rv.add_custom_tf('world', 'map', the_pose)
-    text_marker_1 = rv.add_persistent_marker(create_text_marker('text', 1, 'Hello', [0, 0, 0, 0.2, 0, 0], 'world', 0.3), pub_tf=True)
-    text_marker_2 = rv.add_persistent_marker(create_text_marker('text', 2, 'World', [0, 1, 0, 0.2, 0, 0], 'world', 0.3), pub_tf=True)
+    text_marker_1 = rv.add_persistent_marker(create_text_marker(name='text', id=1, text='Hello', xyzrpy=[0, 0, 0, 0.2, 0, 0], reference_frame='world', dimensions=0.3), pub_tf=True)
+    text_marker_2 = rv.add_persistent_marker(create_text_marker(name='text', id=2, text='World', xyzrpy=[0, 1, 0, 0.2, 0, 0], reference_frame='world', dimensions=0.3), pub_tf=True)
     rv.add_persistent_marker(create_line_marker('line', 1, [1, 0, 0], [0, 0, 1], 'world', 0.01, rgba=[0.0, 1.0, 1.0, 1.0]), pub_period=0.1)
     rv.add_persistent_marker(create_sphere_marker('sphere', 1, [1, 1, 1], 'world', 0.05, rgba=[0.5, 1.0, 1.0, 1.0]))    
     rv.pub_temporary_marker(create_arrow_marker('arrow', 1, [1.0, 0.0, 0.0, 1.0, 0.0, 0.0], 'world', lifetime=rospy.Duration(3.0)))

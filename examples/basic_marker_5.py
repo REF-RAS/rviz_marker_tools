@@ -18,7 +18,8 @@ if __name__ == '__main__':
     rospy.init_node('test_rv_node', anonymous=False)   
     # create the RVizVisualizer 
     rv = RvizVisualizer()
-    # add a sphere marker as a persistent marker to the RVizVisualizer
-    sphere_marker = create_sphere_marker(name='sphere', id=1, xyz=[1, 1, 1], reference_frame='map', dimensions=0.20, rgba=[1.0, 0.5, 0.5, 1.0])
-    rv.add_persistent_marker(sphere_marker) 
+    # add sphere markers as a temporary marker to the RVizVisualizer
+    for i in range(5):
+        rv.pub_temporary_marker(create_sphere_marker(name='sphere', id=i, xyz=[1 + i * 0.2, 1, 1], reference_frame='map', dimensions=0.20, rgba=[1.0, 0.5, 0.5, 1.0]))
+
     rospy.spin()

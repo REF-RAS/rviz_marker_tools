@@ -18,7 +18,12 @@ if __name__ == '__main__':
     rospy.init_node('test_rv_node', anonymous=False)   
     # create the RVizVisualizer 
     rv = RvizVisualizer()
+    # add a custom transform called 'workspace'
+    transform_pose = Pose()
+    transform_pose.position = Point(1, 1, 1)
+    transform_pose.orientation = Quaternion(0, 0, 0, 1)
+    rv.add_custom_tf('workspace', 'map', transform_pose)
     # add a sphere marker as a persistent marker to the RVizVisualizer
-    sphere_marker = create_sphere_marker(name='sphere', id=1, xyz=[1, 1, 1], reference_frame='map', dimensions=0.20, rgba=[1.0, 0.5, 0.5, 1.0])
+    sphere_marker = create_sphere_marker(name='sphere', id=1, xyz=[0.5, 0, 0], reference_frame='workspace', dimensions=0.20, rgba=[1.0, 0.5, 0.5, 1.0])
     rv.add_persistent_marker(sphere_marker) 
     rospy.spin()

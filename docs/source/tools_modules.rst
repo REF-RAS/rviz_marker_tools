@@ -1,26 +1,26 @@
 Supporting Tools API Reference
 ===============================================
 
-tools.pose\_tools module
+rviz\_marker.pose\_tools module
 ---------------------------------------
 
-.. automodule:: tools.pose_tools
+.. automodule:: rviz_marker.pose_tools
     :members:
     :undoc-members:
     :show-inheritance:
 
-tools.rospkg module
+rviz\_marker.rospkg module
 ---------------------------------------
 
-.. automodule:: tools.rospkg
+.. automodule:: rviz_marker.rospkg_tools
     :members:
     :undoc-members:
     :show-inheritance:
 
-tools.logging\_tools module
+rviz\_marker.logging\_tools module
 --------------------------------------------
 
-.. automodule:: tools.logging_tools
+.. automodule:: rviz_marker.logging_tools
     :members:
     :undoc-members:
     :show-inheritance:

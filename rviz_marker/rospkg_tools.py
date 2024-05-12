@@ -84,7 +84,8 @@ class PackageFile():
         elif uri_or_path.startswith('package://'):
             path = uri_or_path[10:]
         elif uri_or_path.startswith(('http://', 'https://')):
-            raise Exception(f'Unsupported protocol: http or https')
+            # raise Exception(f'Unsupported protocol: http or https')
+            return uri_or_path
         elif uri_or_path.find('://') > 0:
             raise Exception(f'Unsupported protocol in uri: {uri_or_path}')
         else:

@@ -45,8 +45,9 @@ extensions = [
 
 myst_all_links_external = False
 
-autodoc_mock_imports = ['rospy', 'moveit_commander', 'geometry_msgs', 'tf', 'tf2_msgs', 'moveit_msgs',
-                        'shape_msgs', 'actionlib_msgs', 'controller_manager_msgs', 'py_trees', 'graphics', 'arm_commander']
+autodoc_mock_imports = ['rospy', 'geometry_msgs', 'tf', 'tf2_msgs', 'std_msgs', 'sensor_msgs', 'visualization_msgs',
+                        'shape_msgs', 'actionlib_msgs', 'controller_manager_msgs', 'rospkg', 
+                        'cv2', 'numpy']
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']

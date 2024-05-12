@@ -15,11 +15,15 @@ import rospy
 from rviz_marker.rviz_tools import *
 
 if __name__ == '__main__':
-    rospy.init_node('test_rv_node', anonymous=False)    
+    rospy.init_node('test_rv_node', anonymous=False)   
     # create the RVizVisualizer 
-    rv = RvizVisualizer(pub_period_marker=0.1)
-    # add a sphere marker as a persistent marker to the RVizVisualizer
-    rv.add_persistent_marker(create_sphere_marker(name='sphere', id=1, xyz=[1, 1, 1], reference_frame='map', dimensions=0.20, rgba=[1.0, 0.5, 0.5, 1.0]), 
-                             pub_period=0.4)
-     
+    rv = RvizVisualizer()
+    # add a group of markers for 'work_area'
+    sphere_marker = create_sphere_marker(name='work_area', id=1, xyz=[1, 1, 1], reference_frame='map', dimensions=0.20, rgba=[1.0, 0.5, 0.5, 1.0])
+    rv.add_persistent_marker(sphere_marker) 
+    axis_marker = create_axisplane_marker(name='work_area', id=2, bbox2d=[-1, -1, 1, 1], offset=0, reference_frame='map', axes='xy', rgba=[1.0, 0.5, 0.5])
+    rv.add_persistent_marker(axis_marker) 
+    arrow_marker = create_arrow_marker(name='work_area', id=3, xyzrpy=[1, 1, 1, 0, 3.14, 0], reference_frame='map', dimensions=0.50, rgba=[1.0, 0.5, 0.5, 1.0])
+    rv.add_persistent_marker(arrow_marker)     
+
     rospy.spin()
