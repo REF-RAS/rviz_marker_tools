@@ -27,11 +27,11 @@ from std_msgs.msg import ColorRGBA, Header
 from geometry_msgs.msg import Pose, PoseStamped, Twist, TwistStamped, Vector3, Point, Quaternion
 from sensor_msgs.msg import PointCloud2, PointField
 from sensor_msgs import point_cloud2
-from visualization_msgs.msg import Marker
-from rviz_marker.pose_tools import list_to_pose, pose_to_xyzq
-from rviz_marker.rospkg_tools import PackageFile
-from rviz_marker.logging_tools import logger
-import rviz_marker.pose_tools as pose_tools
+from visualization_msgs.msg import Marker, MarkerArray
+from task_trees.tools.pose_tools import list_to_pose, pose_to_xyzq
+from task_trees.tools.rospkg_tools import PackageFile
+from task_trees.tools.logging_tools import logger
+import task_trees.tools.pose_tools as pose_tools
 
 class RGBAColors(int, Enum):
     """ Define common use colours for visualization
@@ -451,13 +451,17 @@ class RvizVisualizer():
         # set default values for keyword argument
         self.default_pub_period_marker = config_dict.get('pub_period_marker', 1.0)
         topic_marker = config_dict.get('topic_marker', '/visualization_marker')
+        topic_marker_array = config_dict.get('topic_marker_array', '/visualization_marker_array')
+
         self.default_pub_period_cloud = config_dict.get('pub_period_cloud', 1.0)
         topic_cloud = config_dict.get('topic_cloud', '/visualization_cloud')
         self.default_pub_period_tf = config_dict.get('pub_period_tf', 0.1)
         logger.info(f'RvizVisualizer: publishing markers to "{topic_marker}" (max rate {1 / self.default_pub_period_marker:.2f} Hz)')
+        logger.info(f'RvizVisualizer: publishing marker arrays to "{topic_marker_array}" (max rate {1 / self.default_pub_period_marker:.2f} Hz)')
         logger.info(f'RvizVisualizer: publishing pointclouds to "{topic_cloud}" (max rate {1 / self.default_pub_period_cloud:.2f} Hz)')
         # the storage for markers
         self.markers_dict = defaultdict(lambda: None)  # (marker_namespace, marker_id) -> dict 
+        self.marker_arrays_list = []
         self.temp_marker_list = []
         self.pointclouds_dict = defaultdict(lambda: None)  # pointcloud_name -> dict
         # setup tf publish
@@ -465,6 +469,7 @@ class RvizVisualizer():
         self.tfs_dict = defaultdict(lambda: None)  # frame_name -> dict
         # setup marker publisher
         self.marker_pub = rospy.Publisher(topic_marker, Marker, queue_size = 100)
+        self.marker_array_pub = rospy.Publisher(topic_marker_array, MarkerArray, queue_size = 100)
         self.cloud_pub = rospy.Publisher(topic_cloud, PointCloud2, queue_size = 20)
         # setup timer
         self.timer_marker_viz = rospy.Timer(rospy.Duration(self.default_pub_period_marker), self._cb_timer_marker_viz)
@@ -484,6 +489,12 @@ class RvizVisualizer():
                 if marker_dict['next_time'] is None or current_time >= marker_dict['next_time']:
                     self.marker_pub.publish(marker)
                     marker_dict['next_time'] = current_time + marker_dict['pub_period']
+            # publish the persistent marker arrays 
+            for index, marker_array_dict  in enumerate(self.marker_arrays_list):
+                marker_array = marker_array_dict['marker_array'] 
+                if marker_array_dict['next_time'] is None or current_time >= marker_array_dict['next_time']:
+                    self.marker_array_pub.publish(marker_array)
+                    marker_array_dict['next_time'] = current_time + marker_array_dict['pub_period']                
             # publish the temporary markers
             for marker_dict in list(self.temp_marker_list):
                 marker = marker_dict['marker']
@@ -564,12 +575,27 @@ class RvizVisualizer():
         """ Add a temporary marker, which is to be published only once
 
         :param marker: A marker to be published only once
-        :return: The mrker
+        :return: The marker
         """
         assert marker is not None, 'RvizVisualizer (pub_temporary_marker): Parameter (marker) cannot be None'
         with self.lock:
             self.temp_marker_list.append({'marker': marker, 'pub_time': time.time() + self.TEMP_MAKRER_PUB_DELAY})      
-            return marker     
+            return marker 
+
+    def add_persistent_marker_array(self, marker_array:MarkerArray, pub_period:float=None) -> Marker:
+        """ Add a persistent marker array
+
+        :param marker_array: A marker array to be persistently published
+        :param pub_period: The rate of publishing, which cannot be smaller than 0.1 seconds
+        :param pub_tf: if True, the pose of the marker is published as a tf frame
+        :return: The index of the marker array
+        """
+        assert marker_array is not None, 'RvizVisualizer (add_persistent_marker_array): Parameter (marker_array) cannot be None'
+        with self.lock:
+            pub_period = self.default_pub_period_marker if pub_period is None else pub_period
+            pub_period = 0.1 if pub_period < 0.1 else pub_period
+            self.marker_arrays_list.append({'marker_array': marker_array, 'pub_period': pub_period, 'next_time': None})
+            return len(self.marker_arrays_list) - 1
         
     def add_custom_tf(self, name:str, parent_frame:str, pose:Pose) -> None:
         """ Add a custom transform to the rviz visualizer, which is broadcast regularly
@@ -583,41 +609,74 @@ class RvizVisualizer():
             raise AssertionError(f'RvizVisualizer (add_custom_tf): No parameter can be None')
         self.tfs_dict[name] = {'pose': pose, 'frame':name, 'parent_frame': parent_frame}       
         
-    def delete_all_persistent_markers(self, frame:str) -> None:
+    def delete_all_persistent_markers(self) -> None:
         """ Remove all persistent markers from RViz and this object
 
-        :param frame: The reference frame
         """
-        assert frame is not None, 'RvizVisualizer (delete_all_persistent_markers): Parameter (frame) cannot be None'
         with self.lock:
             # remove the tf associated with markers with pub_tf True
             for marker_dict in self.markers_dict.values():
                 if marker_dict['pub_tf']:
-                    marker:Marker = marker_dict['marker'] 
+                    marker:Marker = marker_dict['marker']
+                    self.temp_marker_list.append({'marker': create_delete_marker(marker.ns, marker.id, marker.header.frame_id), 
+                                                  'pub_time': time.time() + self.TEMP_MAKRER_PUB_DELAY}) 
                     tf_frame = f'{marker.ns}.{marker.id}'
                     if tf_frame in self.tfs_dict:
                         del self.tfs_dict[tf_frame]
             self.markers_dict.clear()
-            self.temp_marker_list.append({'marker': create_delete_all_marker(frame), 'pub_time': time.time() + self.TEMP_MAKRER_PUB_DELAY})
+
             
-    def delete_persistent_marker(self, name:str, id, frame:str) -> None:
+    def delete_persistent_marker(self, name:str, id) -> None:
         """ Remove a persistent marker from RViz and this object
 
         :param name: the name space of the marker
         :param id: the id of the marker
         :param frame: the reference frame
         """
-        assert name is not None and id is not None and frame is not None, \
+        assert name is not None and id is not None, \
             'RvizVisualizer (delete_persistent_markers): Parameter (any) cannot be None'
         with self.lock:
             if (name, id) in self.markers_dict:
-
+                marker:Marker = self.markers_dict[name, id]['marker']
                 del self.markers_dict[name, id]
-                self.temp_marker_list.append({'marker': create_delete_marker(name, id, frame), 'pub_time': time.time() + self.TEMP_MAKRER_PUB_DELAY}) 
+                self.temp_marker_list.append({'marker': create_delete_marker(name, id, marker.header.frame_id), 
+                                              'pub_time': time.time() + self.TEMP_MAKRER_PUB_DELAY}) 
                 tf_frame = f'{name}.{id}'
                 if tf_frame in self.tfs_dict:
                     del self.tfs_dict[tf_frame]
-            
+    
+    def delete_all_persistent_marker_arrays(self) -> None:
+        """ Remove all persistent marker arrays from RViz and this object
+
+        """
+        with self.lock:
+            num_marker_array = len(self.marker_arrays_list)
+            for _ in range(num_marker_array):
+                self.delete_persistent_marker_array(index=0)
+
+    def delete_persistent_marker_array(self, index:int) -> None:
+        """ Remove a persistent marker from RViz and this object
+
+        :param name: the name space of the marker
+        :param id: the id of the marker
+        :param frame: the reference frame
+        """
+        assert index is not None, \
+            'RvizVisualizer (delete_persistent_marker_array): Parameter (any) cannot be None'
+        with self.lock:
+            if 0 <= index < len(self.marker_arrays_list):
+                marker_array:MarkerArray = self.marker_arrays_list[index]['marker_array']
+                self.marker_arrays_list.pop(index)
+                marker:Marker = None
+                for marker in marker_array.markers:
+                    self.temp_marker_list.append({'marker': create_delete_marker(marker.ns, marker.id, marker.header.frame_id), 
+                                                  'pub_time': time.time() + self.TEMP_MAKRER_PUB_DELAY}) 
+                return marker_array
+            return None
+    
+    def clear_all_markers_in_rviz(self, frame:str):
+        self.temp_marker_list.append({'marker': create_delete_all_marker(frame), 'pub_time': time.time() + self.TEMP_MAKRER_PUB_DELAY})
+
     def add_pointcloud(self, name:str, pointcloud:PointCloud2, pub_period:float=None) -> PointCloud2:
         """ Add a PointCloud2 object for regular publishing
 
@@ -660,8 +719,9 @@ if __name__ == '__main__':
     the_pose:Pose = Pose()
     the_pose.position = Point(0, 0, 0)
     the_pose.orientation = Quaternion(0, 0, 0, 1)
-    # rv.add_custom_tf('world', 'map', the_pose)
+    # create world frame
     rv.add_custom_tf('world', 'map', the_pose)
+
     text_marker_1 = rv.add_persistent_marker(create_text_marker(name='text', id=1, text='Hello', xyzrpy=[0, 0, 0, 0.2, 0, 0], reference_frame='world', dimensions=0.3), pub_tf=True)
     text_marker_2 = rv.add_persistent_marker(create_text_marker(name='text', id=2, text='World', xyzrpy=[0, 1, 0, 0.2, 0, 0], reference_frame='world', dimensions=0.3), pub_tf=True)
     rv.add_persistent_marker(create_line_marker('line', 1, [1, 0, 0], [0, 0, 1], 'world', 0.01, rgba=[0.0, 1.0, 1.0, 1.0]), pub_period=0.1)
@@ -669,10 +729,10 @@ if __name__ == '__main__':
     rv.pub_temporary_marker(create_arrow_marker('arrow', 1, [1.0, 0.0, 0.0, 1.0, 0.0, 0.0], 'world', lifetime=rospy.Duration(3.0)))
     # delete the line marker
     rospy.sleep(rospy.Duration(2.0))
-    rv.delete_persistent_marker('line', 1, 'world')
+    rv.delete_persistent_marker('line', 1)
     # delete all markers
     rospy.sleep(rospy.Duration(2.0))
-    rv.delete_all_persistent_markers('world')
+    rv.delete_all_persistent_markers()
     # display stl mesh file
     teapot_mesh = os.path.join(os.path.dirname(__file__), '../docs/assets/UtahTeapot.stl')
     teapot_mesh = 'file://' + teapot_mesh
@@ -689,6 +749,17 @@ if __name__ == '__main__':
         pose.position.x += random.uniform(-0.5, 0.5)
         rospy.sleep(rospy.Duration(0.2))
     # delete the text marker again
-    rv.delete_persistent_marker('text', 1, 'world')
-
+    rv.delete_persistent_marker('text', 1)
+    # create marker array
+    marker_array = MarkerArray()
+    for x in range(4):
+        for y in range(4):
+            xyzrpy=[x * 0.4, y * 0.4, 1.0, 0, 0, 0]
+            tile = create_cube_marker_from_xyzrpy('tile', x + y * 4, xyzrpy, reference_frame='world', 
+                                    dimensions=[0.3, 0.3, 0.05], rgba=[0.0, 0.2, 1.0, 0.5])
+            marker_array.markers.append(tile)    
+    rv.add_persistent_marker_array(marker_array)
+    rospy.sleep(rospy.Duration(5.0))
+    rv.delete_all_persistent_marker_arrays()
+    logger.info(f'The demo is completed')
     rospy.spin()

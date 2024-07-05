@@ -15,6 +15,8 @@ The RViz mark tools is a ROS 1 (noetic) based Python module for simplifying the 
 
 The method of rendering of markers in ROS 1 is by publishing a `visualization_msgs.msg.Marker` message to a topic subscribed by RViz. The population of an `Marker` object is tedious and there are subtle differences for different marker types. The RViz Marker Tools offers an easy-to-use programming interface for the management of marker rendering. For example, displaying a sphere at the position (1, 1, 1) is just one line of code after creating the core class of `RVizVisualizer`. The function `create_sphere_marker` is a helper function for creating a `Marker` object for a sphere, and the function `rv.add_persistent_marker` receives the object for `RVizVisualizer` as a persistent marker. The `RVizVisualizer` object is designed to publish the stored persistent marker objects regularly and to provide other marker related features.
 
+`MarkerArray`, which is a message that can hold an array of `Marker`, offers more efficient rendering. The function `rv.add_persistent_marker_array` accepts a `MarkerArray` object and publish it persistently.
+
 ```python
 rv = RvizVisualizer()
 rv.add_persistent_marker(create_sphere_marker(name='sphere', id=1, xyz=[1, 1, 1], reference_frame='map', dimensions=0.20, rgba=[1.0, 0.5, 0.5, 1.0])) 
@@ -149,6 +151,42 @@ cube_marker = create_cube_marker_from_bbox(name='cube', id=1, bbox3d=[-0.5, 0.5,
 rv.add_persistent_marker(cube_marker)
 ```
 ![Figure](docs/assets/Ex_Basic_4.png)
+
+#### Create and Publish a MarkerArray
+
+A MarkerArray message accepts a list of Marker objects. An example of creating a grid of rectangles is shown below.
+```python
+def create_marker_array(grid_dim:tuple, grid_cell_size:tuple, tile_size:tuple) -> MarkerArray:
+    marker_array = MarkerArray()
+    for x in range(grid_dim[0]):
+        for y in range(grid_dim[1]):
+            xyzrpy=[x * grid_cell_size[0], y * grid_cell_size[1], 0.0, 0, 0, 0]
+            tile = create_cube_marker_from_xyzrpy('tile', x + y * grid_dim[0], xyzrpy, reference_frame='map', dimensions=[tile_size[0], 
+            tile_size[1], tile_size[2]], rgba=[0.0, 0.2, 1.0, 0.5])
+            marker_array.markers.append(tile)
+    return marker_array
+```
+The parameter `grid_dim` is a tuple specifying the number of grid cells in x and y direction respectively (i.e. (9, 3) creates a 9 x 3 grid). `grid_cell_size` specifies the size of each grid cell. A negative size is acceptable. The first marker is placed at the origin (0, 0). The sign indicates which side is the second marker with respect to the first. `tile_size` is the size of the cube marker.
+
+Call `add_persistent_marker_array` to add the marker array object to the RViz tool for publishing.
+
+```python
+# create the RVizVisualizer 
+rv = RvizVisualizer()
+# add a marker array
+marker_array = create_marker_array((9, 3), (0.5, 0.5), (0.46, 0.46, 0.01))
+rv.add_persistent_marker_array(marker_array)
+```
+![Figure](docs/assets/Ex_MarkerArray2.png)
+
+The following code specifies a negative value for the x component of `grid_cell_size`. The grid is rotated as a result.
+
+```python
+marker_array = create_marker_array((9, 3), (-0.5, 0.5), (0.46, 0.46, 0.01))
+...
+```
+
+![Figure](docs/assets/Ex_MarkerArray1.png)
 
 #### Basic Animation with a Loop
 
