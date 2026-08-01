@@ -1,10 +1,12 @@
-# RViz Marker Tools
-
-![QUT REF Collection](https://badgen.net/badge/collections/QUT%20REF-RAS?icon=github) [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
-
+# RViz Marker Tools for ROS1
 
 **Robotics and Autonomous Systems Group, Research Engineering Facility, Research Infrastructure** 
 **Queensland University of Technology**
+
+![QUT REF Collection](https://badgen.net/badge/collections/QUT%20REF-RAS?icon=github) 
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
+[![Build Sphinx and Push Pages](https://github.com/REF-RAS/rviz_marker_tools/actions/workflows/sphinx.yml/badge.svg)](https://github.com/REF-RAS/rviz_marker_tools/actions/workflows/sphinx.yml)
+
 
 ## Introduction
 
