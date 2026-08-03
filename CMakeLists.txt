@@ -163,7 +163,23 @@ include_directories(
 ## in contrast to setup.py, you can choose the destination
 catkin_install_python(PROGRAMS
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+  examples/basic_animation.py
   examples/basic_marker_1.py
+  examples/basic_marker_2.py
+  examples/basic_marker_3.py
+  examples/basic_marker_4.py
+  examples/basic_marker_5.py
+  examples/basic_marker_6.py
+  examples/custom_transform.py
+  examples/demo.py
+  examples/marker_array.py
+  examples/marker_creator_1.py
+  examples/marker_creator_2.py
+  examples/marker_creator_3.py
+  examples/marker_creator_4.py
+  examples/marker_creator_5.py
+  examples/mesh_objects.py
+  examples/topic_config.py
   )
 
 ## Mark executables for installation

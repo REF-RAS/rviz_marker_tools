@@ -1,0 +1,11 @@
+pyyaml
+ipykernel
+
+# ros python packages
+catkin_pkg
+# setuptools<80.0.0
+transforms3d
+
+# common python 
+numpy
+

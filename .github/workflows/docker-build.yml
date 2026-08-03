@@ -1,0 +1,82 @@
+name: Docker Compose Build and Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Target Environment'
+        required: true
+        default: 'production'
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write 
+
+    environment:
+      name: production
+      deployment: false
+
+    defaults:
+      run:
+        working-directory: ./docker
+
+    steps:
+      # fetch the repository code
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      # check for syntax errors and configuration validity
+      - name: Validate Docker Compose Configuration
+        run: docker compose config
+
+      # compile the Docker images
+      - name: Build Docker Compose Images
+        run: docker compose build --no-cache
+
+      # spin up the containers to ensure they start up successfully
+      - name: Test Start Containers
+        run: docker compose up -d --wait
+
+      # check container statuses and ensure none have exited with errors
+      - name: Verify Container Statuses
+        run: |
+          if docker compose ps --all --filter status=exited | grep -q "Exit"; then
+            echo "Error: One or more containers failed to stay running!" >&2
+            docker compose ps --all
+            docker compose logs
+            exit 1
+          else
+            echo "All containers built and started successfully."
+          fi
+
+      # clean up resources to prevent leaks
+      - name: Tear Down Containers
+        if: always()
+        run: docker compose down --volumes
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # push using the image name defined in docker-compose.yml, only runs when code is merged to main
+      - name: Push image with Docker Compose to GHCR
+        if: ${{ github.ref == 'refs/heads/main' && github.event_name != 'pull_request' }}
+        run: docker compose push
+
+  cleanup-old-images:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+    steps:
+      - name: Purge untagged images
+        uses: dataaxiom/ghcr-cleanup-action@v1
+        with:
+          keep-n-untagged: 0 
+          dry-run: false

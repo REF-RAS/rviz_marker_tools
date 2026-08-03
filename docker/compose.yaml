@@ -1,0 +1,42 @@
+# Copyright 2026 - Andrew Kwok Fai LUI, Robotics and Autonomous System Group,
+# Research Engineering Facility, RI
+# the Queensland University of Technology
+
+services:
+    ros1:
+        build:
+            context: .
+            dockerfile: Dockerfile
+            args: 
+                USER: ubuntu
+                HOST_UID: 1000
+                HOST_GID: 1000
+        user: ubuntu:ubuntu    # avoid running as user with root privileges
+        image: ghcr.io/ref-ras/ros1
+        container_name: ros1
+        working_dir: /workspace
+        stdin_open: true
+        tty: true
+        privileged: true
+        network_mode: host
+        ipc: host
+        # ports:
+        # - '8100:8100' # map host port 8000 to container port 8000
+        environment:
+            - DISPLAY
+            - QT_X11_NO_MITSHM=1
+            - ROS_MASTER=true
+            - ROS_MASTER_URI=http://localhost:11311
+            # - ROS_IP=
+        volumes:
+            - /tmp/.X11-unix:/tmp/.X11-unix:rw
+            - /etc/timezone:/etc/timezone:ro
+            - /etc/localtime:/etc/localtime:ro
+            - ~/ros2_ws/src/rviz_marker_tools:/workspace/catkin_ws/src/rviz_marker_tools:rw                     
+        command: bash
+
+
+
+
+       
+           

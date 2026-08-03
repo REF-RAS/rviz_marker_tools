@@ -28,10 +28,11 @@ from geometry_msgs.msg import Pose, PoseStamped, Twist, TwistStamped, Vector3, P
 from sensor_msgs.msg import PointCloud2, PointField
 from sensor_msgs import point_cloud2
 from visualization_msgs.msg import Marker, MarkerArray
-from task_trees.tools.pose_tools import list_to_pose, pose_to_xyzq
-from task_trees.tools.rospkg_tools import PackageFile
-from task_trees.tools.logging_tools import logger
-import task_trees.tools.pose_tools as pose_tools
+
+from .pose_tools import list_to_pose, pose_to_xyzq
+from .rospkg_tools import PackageFile
+from .logging_tools import logger
+import rviz_marker.pose_tools as pose_tools
 
 class RGBAColors(int, Enum):
     """ Define common use colours for visualization
