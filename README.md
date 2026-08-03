@@ -60,17 +60,43 @@ Copy the folder `rviz_marker` to make it part of the project source code. Adjust
 
 ### Install as a ROS Worksapce Package
 
-Set it up as a package in a ROS workspace. This repository is already structured as a package named `rviz_marker_tools`. Clone this repository under the `src` folder of a workspace.
+Set it up as a package in a ROS workspace. To create a workspace (if one is not already created), execute the following.
+```bash
+mkdir -p ~/catkin__ws/src/
+```
+
+This repository is already structured as a package named `rviz_marker_tools`. Clone this repository under the `src` folder of the catkin workspace.
 ```bash
 cd ~/catkin_ws/src
 git clone git@github.com:REF-RAS/rviz_marker_tools.git
 ```
+
 ### Python Dependency
 
 The rviz marker tools has been tested on Python 3.8 or above and ROS 1 noetic, and requires several Python modules. 
 ```bash
-pip install opencv_contrib_python rospkg
+pip install -r ~/catkin_ws/src/rviz_marker_tools/docker/assets/requirements.txt
 ```
+
+### ROS 1 Docker Image 
+
+If ROS 1 is not already setup on your computer, but you have docker installed, you can build a ROS 1 image and try the `rviz_marker_tools` in the container.
+
+Change to the docker folder
+```bash
+cd ~/catkin_ws/src/rviz_marker_tools/docker
+```
+Build the image and run the resulting container in the background
+```bash
+docker compose up ros1 -d
+```
+Then the container can be attached to by the command line in a bash shell.  The bash shell is running from the container in a ROS 1 environment.  The `catkin_ws` folder can be found under `/workspace` where it is the home folder of the default user `ubuntu`.
+```bash
+docker compose exec ros1 bash
+```
+Update the `compose.yml` file to mount more folders from the host computer to the container.  Modify the `HOST_UID` and `HOST_GID` in the yml file to the UID and GID of the user account on your host computer to ensure that new files created by the container in the mounted volumes can have the same UID and GID.
+
+Another (and more powerful) method to attach to the container is through the Remote Deployment extension of Visual Studio Code.
 
 ### Setup RViz
 

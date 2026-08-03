@@ -32,7 +32,7 @@ services:
             - /tmp/.X11-unix:/tmp/.X11-unix:rw
             - /etc/timezone:/etc/timezone:ro
             - /etc/localtime:/etc/localtime:ro
-            - ~/ros2_ws/src/rviz_marker_tools:/workspace/catkin_ws/src/rviz_marker_tools:rw                     
+            - ~/catkin_ws/src/rviz_marker_tools:/workspace/catkin_ws/src/rviz_marker_tools:rw                     
         command: bash
 
 

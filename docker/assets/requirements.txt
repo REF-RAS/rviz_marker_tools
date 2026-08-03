@@ -8,4 +8,4 @@ transforms3d
 
 # common python 
 numpy
-
+opencv_contrib_python

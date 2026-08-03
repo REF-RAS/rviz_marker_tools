@@ -36,6 +36,9 @@ python3-pip \
 python3-venv \
 python3-rosdep
 
+# link python3.11 to python
+RUN ln -s /usr/bin/python3 /usr/bin/python
+
 # clean the apt cache
 RUN apt-get clean
 RUN rm -rf /var/lib/apt/lists/*
@@ -82,7 +85,7 @@ RUN echo "${USER} ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
 # create a working directory: for mounting source code and data volumes
 RUN mkdir -p ${HOME}/.cache ${HOME}/.local
 RUN chown -R ${USER}:${USER} ${HOME}
-WORKDIR ${HOME}  
+WORKDIR ${HOME} 
 
 # install the python modules specified
 # remove permanantly the lock for systen managed package bypass PEP 668 restriction
@@ -95,6 +98,7 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 # set environment variable for uv inside docker
 
 # change to user for the rest of the operations
+USER ${USER}
 
 ENV UV_SYSTEM_PYTHON=1
 ENV UV_COMPILE_BYTECODE=1
@@ -102,11 +106,10 @@ ENV UV_COMPILE_BYTECODE=1
 COPY assets/requirements.txt ${HOME}/requirements.txt
 COPY assets/requirements_dev.txt ${HOME}/requirements_dev.txt
 # RUN pip install -r /workspace/requirements.txt --no-warn-script-location --no-cache-dir 
-RUN uv pip install -r requirements.txt
-RUN uv pip install -r requirements_dev.txt
+RUN sudo uv pip install -r requirements.txt --system
+RUN sudo uv pip install -r requirements_dev.txt --system
 RUN rm ${HOME}/requirements*.txt
 
-USER ${USER}
 # complete rosdep installation
 ENV CATKIN_WS=${HOME}/catkin_ws
 RUN mkdir -p ${CATKIN_WS}/src
