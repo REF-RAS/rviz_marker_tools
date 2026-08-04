@@ -5,7 +5,7 @@
 
 ![QUT REF Collection](https://badgen.net/badge/collections/QUT%20REF-RAS?icon=github) 
 ![ROS1 Package Category](https://badgen.net/badge/category/ROS1%20Package/purple?icon=github)
-![Visualization Topic](https://badgen.net/badge/topic/Unitree%20G1/orange?icon=github)
+![Visualization Topic](https://badgen.net/badge/topic/Visualization/orange?icon=github)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 
 [![Docker Compose Build and Deploy](https://github.com/REF-RAS/rviz_marker_tools/actions/workflows/docker-build.yml/badge.svg)](https://github.com/REF-RAS/rviz_marker_tools/actions/workflows/docker-build.yml)
