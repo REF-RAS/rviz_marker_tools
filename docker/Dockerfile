@@ -75,7 +75,7 @@ RUN if [ -n "$HOST_GID" ] && [ -n "$HOST_UID" ]; then \
         fi \
     else \
         groupmod -n ${USER} ubuntu; \
-        usermod -l ${USER} -d /home/${USER} -d ${HOME} -m ubuntu; \
+        usermod -l ${USER} -d ${HOME} -m ubuntu; \
     fi
 
 
