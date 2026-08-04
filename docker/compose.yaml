@@ -8,13 +8,14 @@ services:
             context: .
             dockerfile: Dockerfile
             args: 
-                USER: ubuntu
-                HOST_UID: 1000
-                HOST_GID: 1000
-        user: ubuntu:ubuntu    # avoid running as user with root privileges
+                USER: qcr
+                HOST_UID: 
+                HOST_GID:
+                # HOME:                             # default is /workspace
+        # user: ubuntu:ubuntu    # avoid root as running user with root privileges is not advised
         image: ghcr.io/ref-ras/ros1
         container_name: ros1
-        working_dir: /workspace
+        # working_dir:
         stdin_open: true
         tty: true
         privileged: true
@@ -32,7 +33,7 @@ services:
             - /tmp/.X11-unix:/tmp/.X11-unix:rw
             - /etc/timezone:/etc/timezone:ro
             - /etc/localtime:/etc/localtime:ro
-            - ~/catkin_ws/src/rviz_marker_tools:/workspace/catkin_ws/src/rviz_marker_tools:rw                     
+            - ~/ros2_ws/src/rviz_marker_tools:/workspace/catkin_ws/src/rviz_marker_tools:rw                     
         command: bash
 
 
