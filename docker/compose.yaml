@@ -6,8 +6,9 @@ services:
     ros1:
         build:
             context: .
-            dockerfile: Dockerfile
+            dockerfile: Dockerfile.ros1
             args: 
+                ROS_DISTRO: noetic
                 USER: qcr
                 HOST_UID: 
                 HOST_GID:

@@ -33,7 +33,6 @@ RUN add-apt-repository ppa:deadsnakes/ppa
 RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y \
 # python3.12 \
 python3-pip \
-python3-venv \
 python3-rosdep
 
 # alternatively add flag --break-system-packages
@@ -71,7 +70,6 @@ RUN if [ -n "$HOST_GID" ] && [ -n "$HOST_UID" ]; then \
         fi \
     else \
         if [ "$USER" = "root" ]; then \
-            groupmod root; \
             usermod -g root -d ${HOME} root; \
         else \
             groupadd ${USER};  \
